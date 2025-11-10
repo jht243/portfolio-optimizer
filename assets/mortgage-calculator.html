@@ -644,6 +644,18 @@
       .modal-actions button.primary { color: #0ea5e9; border-color: rgba(14,165,233,0.5); background: rgba(14,165,233,0.12); }
       .modal-status { min-height: 18px; font-size: 12px; color: rgba(148,163,184,0.9); }
 
+/* Scoped spacing fixes for breakdown slide */
+
+.carousel-slide[data-card="breakdown"] .slide-header h2 { margin: 0; }
+
+.carousel-slide[data-card="breakdown"] .slide-header p { margin: 0; }
+
+.carousel-slide[data-card="breakdown"] .slide-content > .section-block:first-of-type { margin-top: 0 !important; }
+
+.carousel-slide[data-card="breakdown"] #breakdownChart,
+
+.carousel-slide[data-card="breakdown"] canvas#breakdownChart { margin-top: 0 !important; }
+
       .totals-list {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
