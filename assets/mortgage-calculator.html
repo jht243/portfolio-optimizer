@@ -953,22 +953,22 @@
               <div class="slide-content">
                 <header class="slide-header">
                   <h2>Mortgage Calculator</h2>
-                  <div class="rate-indicator">
-                    <button class="rate-refresh" type="button" aria-label="Refresh today's average rate">
+                  <div class="rate-indicator" data-openai-component="rate-indicator">
+                    <button class="rate-refresh" type="button" aria-label="Refresh today's average rate" data-openai-component="manual-refresh-button">
                       <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path fill="currentColor" d="M18.36 6.64A9 9 0 0 0 12 4v2a7 7 0 0 1 6.3 4H16l4 4 4-4h-2.29a9.004 9.004 0 0 0-3.35-3.36Zm-12.72 10.72A9 9 0 0 0 12 20v-2a7 7 0 0 1-6.3-4H8l-4-4-4 4h2.29a9.004 9.004 0 0 0 3.35 3.36Z"/>
                       </svg>
                     </button>
-                    <span class="rate-badge"><span class="rate-label">Today's Average Rate</span> <span class="rate-num"></span></span>
+                    <span class="rate-badge" data-openai-component="rate-badge"><span class="rate-label">Today's Average Rate</span> <span class="rate-num"></span></span>
                   </div>
-                  <button class="rate-cta" id="notifyRatesBtn" type="button" aria-label="Notify me when rates drop">
+                  <button class="rate-cta" id="notifyRatesBtn" type="button" aria-label="Notify me when rates drop" data-openai-component="notification-cta">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2Zm6-6V11a6 6 0 1 0-12 0v5l-2 2v1h16v-1l-2-2Z"/></svg>
                     Notify Me When Rates Drop
                   </button>
                   <p>Compare loan programs, see monthly costs, and preview payoff timing.<br />Adjust the inputs to explore scenarios.</p>
                 </header>
 
-                <section class="section-block">
+                <section class="section-block" data-openai-component="loan-input-form">
                   <div class="section-title">Loan basics</div>
                   <div class="grid">
                     <label>
@@ -1107,7 +1107,7 @@
                 </details>
 
                 <div class="result-stack">
-                  <div class="result-card primary" id="monthlyPaymentCard">
+                  <div class="result-card primary" id="monthlyPaymentCard" data-openai-component="monthly-summary-card">
                     <div class="card-header">
                       <span class="label">Monthly payment (month 0)</span>
                       <span class="badge">All-in payment</span>
@@ -1115,7 +1115,7 @@
                     <span class="value" id="total_monthly_0" aria-live="polite">$0</span>
                     <span class="hint">Includes P&I, MI, taxes, insurance, HOA (excludes extra principal).</span>
                   </div>
-                  <div class="quick-metrics">
+                  <div class="quick-metrics" data-openai-component="quick-metrics">
                     <div class="result-card secondary">
                       <span class="label">Scheduled principal & interest</span>
                       <span class="value" id="p_and_i">$0</span>
@@ -1146,7 +1146,7 @@
                   <h2>Monthly payment breakdown</h2>
                   <p>Visualize the components of your monthly payment.</p>
                 </header>
-                <div class="breakdown-card">
+                <div class="breakdown-card" data-openai-component="breakdown-chart">
                   <div class="breakdown-panel breakdown-layout">
                     <div class="breakdown-chart">
                       <canvas id="breakdownChart"></canvas>
@@ -1201,7 +1201,7 @@
                 </div>
               </div>
             </div>
-            <div class="carousel-slide" data-card="amortization" role="group" aria-roledescription="slide" aria-label="Amortization & totals" aria-hidden="true">
+            <div class="carousel-slide" data-card="amortization" role="group" aria-roledescription="slide" aria-label="Amortization & totals" aria-hidden="true" data-openai-component="amortization-section">
               <div class="slide-content tight">
                 <header class="slide-header">
                   <h2>Amortization & totals</h2>

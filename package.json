@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "Mortgage Calculator - Helps users calculate monthly mortgage payments, analyze home financing options, and plan their home purchase budget.",
+  "description": "Mortgage Calculator MCP server that fetches live mortgage rates from the Federal Reserve (FRED), powers an interactive loan analysis widget with adjustable inputs, and delivers amortization insights, payment breakdown charts, and rate-drop notifications for homebuyers.",
   "scripts": {
     "start": "tsx src/server.ts"
   },

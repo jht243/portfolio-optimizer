@@ -212,6 +212,18 @@ function getRecentLogs(days: number = 7): AnalyticsEvent[] {
   return logs.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 }
 
+function classifyDevice(userAgent?: string | null): string {
+  if (!userAgent) return "Unknown";
+  const ua = userAgent.toLowerCase();
+  if (ua.includes("iphone") || ua.includes("ipad") || ua.includes("ipod")) return "iOS";
+  if (ua.includes("android")) return "Android";
+  if (ua.includes("mac os") || ua.includes("macintosh")) return "macOS";
+  if (ua.includes("windows")) return "Windows";
+  if (ua.includes("linux")) return "Linux";
+  if (ua.includes("cros")) return "ChromeOS";
+  return "Other";
+}
+
 function readWidgetHtml(componentName: string): string {
   if (!fs.existsSync(ASSETS_DIR)) {
     throw new Error(
@@ -258,31 +270,60 @@ function readWidgetHtml(componentName: string): string {
 }
 
 function widgetMeta(widget: MortgageWidget, bustCache: boolean = false) {
-  const templateUri = bustCache 
+  const templateUri = bustCache
     ? `ui://widget/mortgage-calculator.html?v=${Date.now()}`
     : widget.templateUri;
-  
+
   return {
     "openai/outputTemplate": templateUri,
-    "openai/widgetDescription": "Displays a simple Hello World message.",
+    "openai/widgetDescription":
+      "Interactive mortgage-planning dashboard with live FRED-sourced rate badge, configurable loan inputs, payment breakdown charts, amortization timeline, and email notifications for rate drops.",
+    "openai/componentDescriptions": {
+      "rate-indicator": "Header pill cluster that surfaces today's average 30-year fixed mortgage rate sourced from FRED, including the manual refresh control for forced updates.",
+      "rate-badge": "Rounded badge displaying the most recent mortgage rate percentage that auto-updates after every successful API call.",
+      "manual-refresh-button": "Circular refresh button that triggers a new call to the /api/rate endpoint and spins while the rate is being fetched.",
+      "loan-input-form": "Primary loan configuration form containing fields for program type, home value, down payment, interest rate, term, and advanced property expenses.",
+      "monthly-summary-card": "Top result card that surfaces the all-in monthly payment, highlighting cash flow at month zero with contextual hints.",
+      "quick-metrics": "Horizontal metric stack summarizing principal and interest, lifetime interest, and projected payoff date for the current scenario.",
+      "breakdown-chart": "Donut chart and companion list that visualize how the monthly payment splits across P&I, taxes, insurance, HOA dues, and mortgage insurance.",
+      "amortization-section": "Lower panels summarizing lifetime totals and a preview of the amortization schedule, including per-period balances and payments.",
+      "notification-cta": "Call-to-action button that opens the modal for subscribing to mortgage rate drop alerts via email.",
+    },
+    "openai/widgetKeywords": [
+      "mortgage calculator",
+      "home loan planning",
+      "FRED mortgage rate",
+      "amortization schedule",
+      "monthly payment analysis",
+      "rate badge",
+      "home affordability",
+    ],
     "openai/widgetPrefersBorder": true,
     "openai/toolInvocation/invoking": widget.invoking,
     "openai/toolInvocation/invoked": widget.invoked,
     "openai/widgetAccessible": true,
     "openai/resultCanProduceWidget": true,
-    "openai/starterPrompts": ["Show me a mortgage calculator"],
+    "openai/starterPrompts": [
+      "Show the mortgage calculator with today's average rate and monthly payment summary",
+      "Help me explore loan scenarios for buying a $600,000 home with different down payments",
+      "Estimate monthly payments, payoff schedule, and total interest for a 15-year FHA mortgage",
+      "Refresh the live mortgage rate badge and recompute the amortization schedule",
+    ],
   } as const;
 }
 
 const widgets: MortgageWidget[] = [
   {
     id: "mortgage-calculator",
-    title: "Mortgage Calculator Tool",
+    title: "Mortgage Calculator – Live Rates, Payment Breakdown & Amortization Explorer",
     templateUri: `ui://widget/mortgage-calculator.html?v=${Date.now()}`,
-    invoking: "Opening your mortgage calculator widget...",
-    invoked: "Here is the mortgage calculator widget",
+    invoking:
+      "Opening the interactive mortgage calculator with live mortgage-rate badge and detailed payment analytics...",
+    invoked:
+      "Here is the live mortgage calculator with configurable loan inputs, rate badge, payment breakdown, and amortization insights.",
     html: readWidgetHtml("mortgage-calculator"),
-    responseText: "Here is a mortgage calculator widget.",
+    responseText:
+      "Here is an interactive mortgage calculator experience. It fetches the live 30-year fixed mortgage rate from FRED, lets you adjust home price, down payment, loan program, taxes, insurance, HOA dues, and extra payments, then visualizes monthly cash flow, payment composition, and amortization timelines.",
   },
 ];
 
@@ -303,7 +344,8 @@ const toolInputSchema = {
 
 const tools: Tool[] = widgets.map((widget) => ({
   name: widget.id,
-  description: "Shows a simple mortgage calculator widget.",
+  description:
+    "Use this when you need a full mortgage-planning workspace that pulls live FRED rates, lets you adjust loan assumptions, and visualizes payments via charts and amortization tables. Do not use for unrelated financial products like auto loans or credit cards.",
   inputSchema: toolInputSchema,
   title: widget.title,
   _meta: widgetMeta(widget),
@@ -317,7 +359,8 @@ const tools: Tool[] = widgets.map((widget) => ({
 const resources: Resource[] = widgets.map((widget) => ({
   uri: widget.templateUri,
   name: widget.title,
-  description: `${widget.title} widget markup`,
+  description:
+    "HTML template for the mortgage calculator widget including live rate badge, calculator form, payment breakdown charts, amortization timeline, and notification modal.",
   mimeType: "text/html+skybridge",
   _meta: widgetMeta(widget),
 }));
@@ -325,7 +368,8 @@ const resources: Resource[] = widgets.map((widget) => ({
 const resourceTemplates: ResourceTemplate[] = widgets.map((widget) => ({
   uriTemplate: widget.templateUri,
   name: widget.title,
-  description: `${widget.title} widget markup`,
+  description:
+    "Template descriptor for the mortgage calculator widget with live rate integration, configurable loan controls, visualization panels, and notification workflow.",
   mimeType: "text/html+skybridge",
   _meta: widgetMeta(widget),
 }));
@@ -335,7 +379,8 @@ function createMortgageCalculatorServer(): Server {
     {
       name: "mortgage-calculator",
       version: "0.1.0",
-      description: "Mortgage Calculator helps users calculate monthly mortgage payments, analyze home financing options, and plan their home purchase budget. Provides detailed payment breakdowns, amortization schedules, and total cost analysis for various loan scenarios.",
+      description:
+        "Mortgage Calculator is a comprehensive mortgage planning assistant. It fetches authoritative rate data from the Federal Reserve (FRED), calculates monthly payments, taxes, insurance, PMI, and HOA costs, and renders interactive charts, amortization schedules, and payoff timelines so homebuyers can compare loan scenarios and understand lifetime costs before making decisions.",
     },
     {
       capabilities: {
@@ -422,6 +467,8 @@ function createMortgageCalculatorServer(): Server {
     CallToolRequestSchema,
     async (request: CallToolRequest) => {
       const startTime = Date.now();
+      let userAgentString: string | null = null;
+      let deviceCategory = "Unknown";
       
       // Log the full request to debug _meta location
       console.log("Full request object:", JSON.stringify(request, null, 2));
@@ -442,6 +489,8 @@ function createMortgageCalculatorServer(): Server {
         const userLocation = meta["openai/userLocation"];
         const userLocale = meta["openai/locale"];
         const userAgent = meta["openai/userAgent"];
+        userAgentString = typeof userAgent === "string" ? userAgent : null;
+        deviceCategory = classifyDevice(userAgentString);
         
         // Debug log
         console.log("Captured meta:", { userLocation, userLocale, userAgent });
@@ -453,6 +502,7 @@ function createMortgageCalculatorServer(): Server {
           params: request.params.arguments ?? {},
           inferredQuery: "hello world widget",
           responseTime,
+          device: deviceCategory,
           userLocation: userLocation
             ? {
                 city: userLocation.city,
@@ -484,6 +534,8 @@ function createMortgageCalculatorServer(): Server {
           error: error.message,
           stack: error.stack,
           responseTime: Date.now() - startTime,
+          device: deviceCategory,
+          userAgent: userAgentString,
         });
         throw error;
       }
