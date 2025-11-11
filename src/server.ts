@@ -353,9 +353,26 @@ widgets.forEach((widget) => {
 const toolInputSchema = {
   type: "object",
   properties: {
+    loan_type: {
+      type: "string",
+      enum: ["conventional", "FHA", "VA", "USDA"],
+      description: "Loan program type. Choose one of: conventional, FHA, VA, USDA.",
+    },
     home_value: {
       type: "number",
-      description: "Total purchase price or current value of the home in dollars. Example: 450000 for a $450,000 home.",
+      description: "Home purchase price in dollars. Example: 600000.",
+    },
+    down_payment_value: {
+      type: "number",
+      description: "Down payment in dollars (not percent). Example: 120000.",
+    },
+    rate_apr: {
+      type: "number",
+      description: "Annual percentage rate, e.g., 6.5 for 6.5%.",
+    },
+    term_years: {
+      type: "number",
+      description: "Loan term in years. Common values: 30, 20, 15, 10.",
     },
   },
   required: [],
