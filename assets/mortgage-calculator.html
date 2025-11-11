@@ -715,6 +715,12 @@
       .modal-actions button.primary { color: #0ea5e9; border-color: rgba(14,165,233,0.5); background: rgba(14,165,233,0.12); }
       .modal-status { min-height: 18px; font-size: 12px; color: rgba(148,163,184,0.9); }
 
+      .toast-container { position: fixed; right: 16px; bottom: 16px; display: grid; gap: 8px; z-index: 10000; }
+      .toast { display: inline-flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(100,116,139,0.35); background: rgba(15,23,42,0.92); color: #e2e8f0; font-size: 12px; letter-spacing: 0.02em; opacity: 0; transform: translateY(6px); transition: opacity .2s ease, transform .2s ease; }
+      .toast.show { opacity: 1; transform: translateY(0); }
+      .toast.success { border-color: rgba(16,185,129,0.45); color: #a7f3d0; }
+      .toast.error { border-color: rgba(239,68,68,0.45); color: #fecaca; }
+
 /* Scoped spacing fixes for breakdown slide */
 
 .carousel-slide[data-card="breakdown"] .slide-header h2 { margin: 0; }
@@ -864,7 +870,7 @@
 
       .actions {
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-start;
         align-items: center;
         font-size: 10px;
         color: rgba(148, 163, 184, 0.75);
@@ -893,6 +899,10 @@
         box-shadow: 0 4px 14px rgba(14, 165, 233, 0.25);
         outline: none;
       }
+
+      /* Push the buttons as a group to the right: first button gets auto margin */
+      #resetBtn { margin-left: auto; }
+      .actions button svg { width: 14px; height: 14px; margin-right: 6px; display: inline-block; vertical-align: middle; }
 
       table {
         width: 100%;
@@ -1193,7 +1203,7 @@
                   <div class="actions">
                     <span>Updates automatically as you edit.</span>
                     <button class="secondary" id="resetBtn" type="button">Reset defaults</button>
-                    <button class="secondary" id="feedbackBtn" type="button">Feedback</button>
+                    <button class="secondary" id="feedbackBtn" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M5 3h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-4 4v-4H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>Feedback</button>
                   </div>
                 </div>
               </div>
@@ -1830,6 +1840,29 @@
           console.debug(`[mortgage-telemetry] ${event}`, detail);
         };
 
+        // Lightweight toast notifications for success/failure messages
+        const getToastContainer = () => {
+          let el = document.querySelector('.toast-container');
+          if (!el) {
+            el = document.createElement('div');
+            el.className = 'toast-container';
+            document.body.appendChild(el);
+          }
+          return el;
+        };
+        const showToast = (type, message) => {
+          const container = getToastContainer();
+          const t = document.createElement('div');
+          t.className = `toast ${type}`;
+          t.textContent = message;
+          container.appendChild(t);
+          requestAnimationFrame(() => t.classList.add('show'));
+          setTimeout(() => {
+            t.classList.remove('show');
+            setTimeout(() => t.remove(), 250);
+          }, 3000);
+        };
+
         const validateInputs = () => {
           clearFieldErrors();
           const issues = [];
@@ -2354,11 +2387,14 @@
               if (ok) {
                 if (fbStatusEl) fbStatusEl.textContent = 'Thanks for your feedback!';
                 fbOverlay.style.display = 'none';
+                showToast('success', 'Feedback success');
               } else {
                 if (fbStatusEl) fbStatusEl.textContent = 'Failed to send feedback. Please try again.';
+                showToast('error', 'Feedback failed');
               }
             } catch (err) {
               if (fbStatusEl) fbStatusEl.textContent = 'Failed to send feedback. Please try again.';
+              showToast('error', 'Feedback failed');
             }
           };
 
