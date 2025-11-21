@@ -2542,9 +2542,7 @@
             if (!st || !taxEl) return;
             const code = String(st.value || '').toUpperCase();
             if (!code || !(code in STATE_SALES_TAX)) return;
-            const curNum = Number(taxEl.value);
-            const hasMeaningful = taxEl.value !== '' && Number.isFinite(curNum) && curNum > 0;
-            // Only set when forcing or when the field is empty/zero and user hasn't manually edited it
+            // Only set when the user has not manually edited sales tax, unless we explicitly force
             if (force || !autoSalesTaxEdited) {
               taxEl.value = String(STATE_SALES_TAX[code]);
             }
@@ -3842,6 +3840,7 @@
           if (state.inputs && 'exp_property_tax_annual' in state.inputs) taxEdited = true;
           if (state.inputs && 'closing_cost' in state.inputs) closingEdited = true;
           if (state.inputs && 'interest_rate_pct' in state.inputs) rateEdited = true;
+          if (state.inputs && 'sales_tax_pct' in state.inputs) autoSalesTaxEdited = true;
 
           // Radios / toggles
           try {
@@ -3975,8 +3974,8 @@
         const stateEl = document.getElementById('state');
         if (stateEl) {
           stateEl.addEventListener('change', () => {
-            // Force state change to always refresh baseline tax for that state
-            setSalesTaxFromState(true);
+            // Only update sales tax if the user has not manually overridden it
+            setSalesTaxFromState(false);
             calculateAndRender();
             saveUserInputsState();
           });
