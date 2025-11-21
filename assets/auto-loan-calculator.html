@@ -152,6 +152,11 @@
         margin-top: 12px;
       }
 
+      /* Normalize vertical spacing inside Purchase Details */
+      [data-openai-component="purchase-details"] .collapsible-content .grid + .grid {
+        margin-top: 18px; /* match prior project spacing */
+      }
+
       .field-group {
         padding: 16px 0 12px;
       }
@@ -219,6 +224,11 @@
         gap: 14px;
         grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
       }
+      /* Ensure consistent spacing within Purchase Details */
+      [data-openai-component="purchase-details"] .grid {
+        column-gap: 16px;
+        row-gap: 18px;
+      }
 
       .grid > * {
         min-width: 0;
@@ -230,9 +240,11 @@
       }
 
       .grid.trio-columns {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 14px 16px;
+        grid-template-columns: repeat(2, minmax(0, 1fr)); /* Max two inputs per row */
+        gap: 16px 18px; /* column x row */
       }
+      /* Checkbox follows normal grid flow in Purchase Details (two per row) */
+      [data-openai-component="purchase-details"] label.checkbox-row { grid-column: auto; }
 
       /* Inline pair: main amount + small percent input aligned horizontally */
       .inline-pair {
@@ -408,12 +420,14 @@
       .metrics-table tbody td:first-child { color: rgba(226, 232, 240, 0.9); text-align: left; }
       .metrics-table tbody td { text-align: right; color: rgba(248, 250, 252, 0.92); }
       .metrics-table tr.em td { font-weight: 600; color: #fca5a5; }
+      /* Hide Year 1 table for simplified one-column layout */
+      .metrics-table-wrap { display: none; }
       .donut-row { display: grid; grid-template-columns: auto 1fr; gap: 16px; align-items: center; }
       @media (max-width: 520px) { .donut-row { grid-template-columns: 1fr; } }
       /* 2x2 Year 1 grid: KPI x 2 on row 1, table + donut on row 2 */
       .year1-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: 1fr; /* Force one-column layout */
         gap: 16px;
         width: 100%;
         max-width: 100%;
@@ -428,7 +442,8 @@
       .donut-legend .legend-item .pct { margin-left: auto; color: rgba(203, 213, 225, 0.85); }
       .breakdown-table-wrap { justify-self: start; }
       /* Year-by-Year table: prevent horizontal overflow expanding layout */
-      .yearly-table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%; white-space: nowrap; background: rgba(23, 26, 45, 0.6); border-radius: 12px; }
+      /* Shrink to content so no extra dark space to the right of Ending Balance */
+      .yearly-table { width: auto; border-collapse: collapse; display: inline-table; max-width: 100%; background: rgba(23, 26, 45, 0.6); border-radius: 12px; }
       .yearly-table th, .yearly-table td { padding: 10px 12px; border-bottom: 1px solid rgba(71, 85, 105, 0.35); font-size: 13px; text-align: right; }
       .yearly-table thead th:first-child, .yearly-table tbody td:first-child { text-align: left; }
       @media (max-width: 720px) { .metrics-table th, .metrics-table td { font-size: 12px; padding: 8px 10px; } .kpi-number { font-size: 26px; } }
@@ -1501,45 +1516,38 @@
         <label>
           Auto Price ($)
           <input type="number" id="auto_price" min="0" step="100" />
+          <div class="slider-row">
+            <input type="range" id="auto_price_slider" min="0" max="150000" step="100" aria-label="Auto price" />
+            <span class="slider-value" id="auto_price_slider_display">$0</span>
+          </div>
         </label>
-        <label>
-          Title, Registration, and Other Fees ($)
-          <input type="number" id="title_fees" min="0" step="50" />
+        <label class="loan-field">
+          Down Payment ($)
+          <input type="number" id="down_payment_value" min="0" step="100" />
+          <div class="slider-row">
+            <input type="range" id="auto_down_payment_slider" min="0" max="50000" step="100" aria-label="Down payment dollars" />
+            <span class="slider-value" id="auto_down_payment_slider_display">$0</span>
+          </div>
         </label>
       </div>
 
-      <div class="field-group" id="loan_field_group">
-        <div class="grid trio-columns">
-          <label class="loan-field">
-            Down Payment ($)
-            <input type="number" id="down_payment_value" min="0" step="100" />
+        <div class="grid duo-columns">
+          <label>
+            Title, Registration, and Other Fees ($)
+            <input type="number" id="title_fees" min="0" step="50" />
           </label>
           <label class="percent-field loan-field">
             Interest Rate (%)
             <input type="number" id="interest_rate_pct" min="0" step="0.01" />
           </label>
+        </div>
+
+        <!-- Row 2: Loan Term + Your State -->
+        <div class="grid duo-columns">
           <label class="loan-field">
             Loan Term (months)
             <input type="number" id="loan_term_months" min="1" step="1" />
           </label>
-        </div>
-
-        <div class="grid trio-columns">
-          <label class="loan-field">
-            Cash Incentives ($)
-            <input type="number" id="cash_incentives" min="0" step="50" />
-          </label>
-          <label class="loan-field">
-            Trade-in Value ($)
-            <input type="number" id="trade_in_value" min="0" step="100" />
-          </label>
-          <label class="loan-field">
-            Amount Owed on Trade-in ($)
-            <input type="number" id="trade_in_owed" min="0" step="100" />
-          </label>
-        </div>
-
-        <div class="grid trio-columns">
           <label class="loan-field">
             Your State
             <select id="state">
@@ -1597,6 +1605,10 @@
               <option value="WY">Wyoming</option>
             </select>
           </label>
+        </div>
+
+        <!-- Row 3: Sales Tax + Include taxes checkbox -->
+        <div class="grid duo-columns">
           <label class="percent-field loan-field">
             Sales Tax (%)
             <input type="number" id="sales_tax_pct" min="0" step="0.01" />
@@ -1606,9 +1618,31 @@
             <span>Include taxes and fees in loan</span>
           </label>
         </div>
-      </div>
+    </div>
+  </details>
 
-      
+  <!-- Trade In Details (moved from Purchase Details) -->
+  <details class="section-block collapsible" data-openai-component="trade-in-details">
+    <summary class="section-summary">
+      <span class="summary-title"><span class="icon">🚗</span> Trade In Details</span>
+    </summary>
+    <div class="collapsible-content">
+      <div class="grid duo-columns">
+        <label class="loan-field">
+          Cash Incentives ($)
+          <input type="number" id="cash_incentives" min="0" step="50" />
+        </label>
+        <label class="loan-field">
+          Trade-in Value ($)
+          <input type="number" id="trade_in_value" min="0" step="100" />
+        </label>
+      </div>
+      <div class="grid duo-columns">
+        <label class="loan-field">
+          Amount Owed on Trade-in ($)
+          <input type="number" id="trade_in_owed" min="0" step="100" />
+        </label>
+      </div>
     </div>
   </details>
 
@@ -1868,17 +1902,17 @@
                           </tr>
                           <tr>
                             <td>Principal paid</td>
-                            <td>—</td>
+                            <td id="y1_principal_monthly">—</td>
                             <td id="y1_principal_annual">$0</td>
                           </tr>
                           <tr>
                             <td>Interest paid</td>
-                            <td>—</td>
+                            <td id="y1_interest_monthly">—</td>
                             <td id="y1_interest_annual">$0</td>
                           </tr>
                           <tr>
                             <td>Ending balance</td>
-                            <td>—</td>
+                            <td id="y1_ending_balance_monthly">—</td>
                             <td id="y1_ending_balance">$0</td>
                           </tr>
                         </tbody>
@@ -1888,7 +1922,7 @@
                 </section>
                 <section class="section-block">
                   <div class="section-title">Loan Totals</div>
-                  <div class="grid three-col">
+                  <div class="grid two-col">
                     <div class="metric"><span class="label">Total paid (P&I)</span><span class="value" id="out_total_paid">$0</span></div>
                     <div class="metric"><span class="label">Total interest paid</span><span class="value" id="out_total_interest">$0</span></div>
                     <div class="metric"><span class="label">Months to payoff</span><span class="value" id="out_months_to_payoff">0</span></div>
@@ -2649,8 +2683,11 @@
           // Year 1 table
           y1_mortgage_monthly: $("y1_mortgage_monthly"),
           y1_mortgage_annual: $("y1_mortgage_annual"),
+          y1_principal_monthly: $("y1_principal_monthly"),
           y1_principal_annual: $("y1_principal_annual"),
+          y1_interest_monthly: $("y1_interest_monthly"),
           y1_interest_annual: $("y1_interest_annual"),
+          y1_ending_balance_monthly: $("y1_ending_balance_monthly"),
           y1_ending_balance: $("y1_ending_balance"),
           // Loan Totals
           out_total_paid: $("out_total_paid"),
@@ -2963,6 +3000,21 @@
           safeSet(outputs.y1_principal_annual, formatCurrency(y1Principal));
           safeSet(outputs.y1_interest_annual, formatCurrency(y1Interest));
           safeSet(outputs.y1_ending_balance, formatCurrency(y1EndingBal));
+
+          // Year 1 monthly (Month 1 values)
+          const m1 = calc.schedule[0] || null;
+          if (m1) {
+            const m1Prin = (m1.principal_scheduled || 0) + (m1.extra_principal || 0);
+            const m1Int = m1.interest || 0;
+            const m1End = m1.closing_balance || 0;
+            safeSet(outputs.y1_principal_monthly, formatCurrency(m1Prin));
+            safeSet(outputs.y1_interest_monthly, formatCurrency(m1Int));
+            safeSet(outputs.y1_ending_balance_monthly, formatCurrency(m1End));
+          } else {
+            safeSet(outputs.y1_principal_monthly, '—');
+            safeSet(outputs.y1_interest_monthly, '—');
+            safeSet(outputs.y1_ending_balance_monthly, '—');
+          }
         };
 
         // ---------- Investment summary & Over Time ----------
@@ -3667,26 +3719,15 @@
         });
 
         // ---------- Persisted user inputs (72h) via Apps SDK widgetState with localStorage fallback ----------
-        const PERSIST_KEY = "rpc_user_inputs_state_v1";
+        const PERSIST_KEY = "alc_user_inputs_state_v1";
         const PERSIST_TTL_MS = 72 * 60 * 60 * 1000;
 
         const PERSIST_INPUT_IDS = [
-          // Income
-          'monthly_rent','other_monthly_income','vacancy_rate_pct',
-          'monthly_rent_increase_pct','other_monthly_income_increase_pct',
-          // Operating expenses
-          'exp_property_tax_annual','exp_insurance_annual','exp_hoa_annual','exp_maintenance_annual','exp_other_annual',
-          'exp_property_tax_increase_pct','exp_insurance_increase_pct','exp_hoa_increase_pct','exp_maintenance_increase_pct','exp_other_increase_pct',
-          // Purchase details / loan
-          'purchase_price','closing_cost','down_payment_pct','interest_rate_pct','loan_term_years',
-          // Repairs
-          'repair_cost','after_repair_value',
-          // Sell / exit
-          'sell_price','holding_length_years','cost_to_sell_pct','value_appreciation_pct',
-          // Auto loan inputs
-          'auto_price','title_fees','down_payment_value','interest_rate_pct','loan_term_months',
-          'cash_incentives','trade_in_value','trade_in_owed','sales_tax_pct','state'
-        ];
+          'auto_price', 'title_fees', 'down_payment_value', 'interest_rate_pct', 'loan_term_months',
+          'cash_incentives', 'trade_in_value', 'trade_in_owed',
+          'state', 'sales_tax_pct', 'include_taxes_fees',
+          'purchase_type_loan', 'purchase_type_lease'
+        ];  
 
         const readToggleValue = (yesId, noId) => {
           const yes = document.getElementById(yesId);
@@ -3836,6 +3877,64 @@
         // Explicit listeners for rate slider to set the edited flag immediately
         const rateSlider = document.getElementById('loan_rate_slider');
         if (rateSlider) rateSlider.addEventListener('input', () => { didUserEdit = true; rateEdited = true; });
+        // Setup sliders for Auto Price and Down Payment (dollar sliders)
+        (function setupAutoSliders() {
+          const setupDollarSlider = (numId, sliderId, displayId, min, max, step) => {
+            const numEl = document.getElementById(numId);
+            const sliderEl = document.getElementById(sliderId);
+            const dispEl = displayId ? document.getElementById(displayId) : null;
+            if (!numEl || !sliderEl) return;
+            if (typeof min === 'number') sliderEl.min = String(min);
+            if (typeof max === 'number') sliderEl.max = String(max);
+            if (typeof step === 'number') sliderEl.step = String(step);
+
+            const fmt = (v) => {
+              try { return formatCurrency(Number(v || 0)); } catch(_) { return String(v || 0); }
+            };
+
+            const updateFromNum = () => {
+              const v = Number(numEl.value || 0);
+              sliderEl.value = String(isFinite(v) ? v : 0);
+              if (dispEl) dispEl.textContent = fmt(sliderEl.value);
+            };
+
+            const updateFromSlider = () => {
+              numEl.value = sliderEl.value;
+              if (dispEl) dispEl.textContent = fmt(sliderEl.value);
+              didUserEdit = true;
+              calculateAndRender();
+              saveUserInputsState();
+            };
+
+            numEl.addEventListener('input', updateFromNum);
+            sliderEl.addEventListener('input', updateFromSlider);
+            // Initialize display and position
+            updateFromNum();
+          };
+
+          setupDollarSlider('auto_price', 'auto_price_slider', 'auto_price_slider_display', 0, 150000, 100);
+          setupDollarSlider('down_payment_value', 'auto_down_payment_slider', 'auto_down_payment_slider_display', 0, 50000, 100);
+          // Ensure DP slider cannot exceed Auto Price
+          const apNum = document.getElementById('auto_price');
+          const apSlider = document.getElementById('auto_price_slider');
+          const dpSlider = document.getElementById('auto_down_payment_slider');
+          const dpNum = document.getElementById('down_payment_value');
+          const clampDp = () => {
+            if (!apNum || !dpSlider || !dpNum) return;
+            const ap = Number(apNum.value || 0);
+            dpSlider.max = String(Math.max(0, ap));
+            if (Number(dpSlider.value) > ap) {
+              dpSlider.value = String(ap);
+              dpNum.value = String(ap);
+              didUserEdit = true;
+              calculateAndRender();
+              saveUserInputsState();
+            }
+          };
+          if (apNum) apNum.addEventListener('input', clampDp);
+          if (apSlider) apSlider.addEventListener('input', clampDp);
+          clampDp();
+        })();
         updateMiVisibility();
         updateCarousel();
         setAutoDefaultsIfEmpty(false);
