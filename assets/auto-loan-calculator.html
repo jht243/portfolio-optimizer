@@ -4596,7 +4596,9 @@
                 // legacy mortgage
                 'home_value','down_payment_value','rate_apr','term_years','property_tax_input','homeowners_insurance_yearly','hoa_monthly','pmi_pct','annual_mi_pct','upfront_fee_pct','start_month','start_year','extra_principal_monthly','extra_start_month_index',
                 // rental-specific
-                'purchase_price','closing_cost','monthly_rent','other_monthly_income','vacancy_rate_pct','exp_property_tax_annual','exp_insurance_annual','exp_hoa_annual','exp_maintenance_annual','exp_other_annual','down_payment_pct','interest_rate_pct','loan_term_years','monthly_rent_increase_pct','other_monthly_income_increase_pct','exp_property_tax_increase_pct','exp_insurance_increase_pct','exp_hoa_increase_pct','exp_maintenance_increase_pct','exp_other_increase_pct','holding_length_years','cost_to_sell_pct','value_appreciation_pct','sell_price'
+                'purchase_price','closing_cost','monthly_rent','other_monthly_income','vacancy_rate_pct','exp_property_tax_annual','exp_insurance_annual','exp_hoa_annual','exp_maintenance_annual','exp_other_annual','down_payment_pct','interest_rate_pct','loan_term_years','monthly_rent_increase_pct','other_monthly_income_increase_pct','exp_property_tax_increase_pct','exp_insurance_increase_pct','exp_hoa_increase_pct','exp_maintenance_increase_pct','exp_other_increase_pct','holding_length_years','cost_to_sell_pct','value_appreciation_pct','sell_price',
+                // auto-loan specific
+                'auto_price','loan_term_months','cash_incentives','trade_in_value','trade_in_owed','sales_tax_pct','title_fees'
               ]);
               out[k] = keysNeedingNum.has(k) ? parseNumberish(v) : v;
             }
@@ -4619,6 +4621,17 @@
           setIf('start_year', src.start_year);
           setIf('extra_principal_monthly', src.extra_principal_monthly);
           setIf('extra_start_month_index', src.extra_start_month_index);
+          // auto-loan overlays (prefer explicit auto fields but fall back to legacy names)
+          setIf('auto_price', src.auto_price ?? src.home_value);
+          setIf('loan_term_months', src.loan_term_months);
+          setIf('interest_rate_pct', src.interest_rate_pct ?? src.rate_apr);
+          setIf('cash_incentives', src.cash_incentives);
+          setIf('trade_in_value', src.trade_in_value);
+          setIf('trade_in_owed', src.trade_in_owed);
+          setIf('state', src.state);
+          setIf('sales_tax_pct', src.sales_tax_pct);
+          setIf('title_fees', src.title_fees);
+          setIf('include_taxes_fees', src.include_taxes_fees);
           // rental-specific overlays
           setIf('purchase_price', src.purchase_price);
           setIf('closing_cost', src.closing_cost);
@@ -4665,6 +4678,45 @@
             else el.value = String(v);
           });
         };
+        // Apply auto-loan params directly to DOM fields and sync sliders
+        const applyAutoProvided = (params) => {
+          if (!params || typeof params !== 'object') return;
+          const ids = [
+            'auto_price','down_payment_value','interest_rate_pct','loan_term_months',
+            'cash_incentives','trade_in_value','trade_in_owed',
+            'state','sales_tax_pct','title_fees','include_taxes_fees'
+          ];
+          ids.forEach((id) => {
+            if (!(id in params)) return;
+            const el = document.getElementById(id);
+            if (!el) return;
+            const v = params[id];
+            if (el.type === 'checkbox') {
+              el.checked = Boolean(v);
+            } else {
+              el.value = String(v);
+            }
+            // Keep auto sliders visually in sync for key dollar fields
+            if (id === 'auto_price') {
+              const s = document.getElementById('auto_price_slider');
+              const d = document.getElementById('auto_price_slider_display');
+              if (s) s.value = String(v);
+              if (d) {
+                try { d.textContent = formatCurrency(Number(v || 0)); }
+                catch(_) { d.textContent = String(v); }
+              }
+            }
+            if (id === 'down_payment_value') {
+              const s = document.getElementById('auto_down_payment_slider');
+              const d = document.getElementById('auto_down_payment_slider_display');
+              if (s) s.value = String(v);
+              if (d) {
+                try { d.textContent = formatCurrency(Number(v || 0)); }
+                catch(_) { d.textContent = String(v); }
+              }
+            }
+          });
+        };
         const readProvidedParams = () => {
           const oa = (window && window.openai) ? window.openai : {};
           const candidates = [
@@ -4694,6 +4746,7 @@
         if (providedParams && Object.keys(providedParams).length > 0) {
           setDefaults(providedParams);
           applyRentalProvided(providedParams);
+          applyAutoProvided(providedParams);
         }
 
         // Hydrate from saved widget/local state BEFORE applying derived defaults
@@ -4725,6 +4778,7 @@
             if (late.loan_type) { try { inputs.loan_type.value = late.loan_type; mergeProgramDefaults(); } catch(_){} }
             setDefaults(late);
             applyRentalProvided(late);
+            applyAutoProvided(late);
             calculateAndRender();
             return true;
           }
@@ -4746,6 +4800,7 @@
             if (props.loan_type) { try { inputs.loan_type.value = props.loan_type; mergeProgramDefaults(); } catch(_){} }
             setDefaults(props);
             applyRentalProvided(props);
+            applyAutoProvided(props);
             calculateAndRender();
           }
         }, { passive: true });
