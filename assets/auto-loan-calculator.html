@@ -4355,6 +4355,11 @@
 
         const clearUserInputsState = () => {
           purgeSavedState();
+          // Reset manual edit flags so defaults can re-apply
+          taxEdited = false;
+          closingEdited = false;
+          rateEdited = false;
+          autoSalesTaxEdited = false;
         };
 
         const bindRecalc = (id, evt = 'input') => {
@@ -4874,6 +4879,19 @@
           // Hide/show the entire loan details group
           const group = document.getElementById('loan_details_group');
           if (group) group.classList.toggle('is-hidden', !isLoan);
+
+          // Hide slide 3 (Amortization / Breakdown Over Time) in Lease mode
+          const amortizationView = document.getElementById('amortizationView');
+          const showAmortizationBtn = document.getElementById('showAmortizationBtn');
+          if (showAmortizationBtn) {
+             showAmortizationBtn.classList.toggle('is-hidden', isLease);
+          }
+          // If we are currently viewing amortization and switch to lease, go back
+          if (isLease && amortizationView && !amortizationView.classList.contains('is-hidden')) {
+             // Simulate back button click or just hide it
+             const backBtn = document.getElementById('backToBreakdownBtn');
+             if (backBtn) backBtn.click();
+          }
         };
 
         const toggleCalculationMode = () => {
