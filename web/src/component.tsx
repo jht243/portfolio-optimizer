@@ -242,9 +242,15 @@ const getHydrationData = (): any => {
 
 const mergeHydrationData = (loaded: Record<CalculatorType, CalculatorData>, data: any) => {
     if (!data || (!data.height_cm && !data.weight_kg && !data.age_years && !data.summary)) return loaded;
+    if (!loaded || !loaded["BMI Calculator"]) return loaded;
     
     const current = loaded["BMI Calculator"];
-    const isTouch = (field: string) => current.touched && current.touched[field as keyof typeof current.touched];
+    if (!current) return loaded;
+
+    const values = current.values || DEFAULT_VALUES;
+    const touched = current.touched || {};
+    
+    const isTouch = (field: string) => touched[field as keyof typeof touched];
 
     const hCm = data.height_cm;
     const wKg = data.weight_kg;
@@ -257,7 +263,7 @@ const mergeHydrationData = (loaded: Record<CalculatorType, CalculatorData>, data
     // Helper to check if we should update a field (if not touched by user)
     const shouldUpdate = (group: string) => !isTouch(group);
 
-    const newValues = { ...current.values };
+    const newValues = { ...values };
 
     if (shouldUpdate("height")) {
         if (hCm) newValues.heightCm = String(hCm);
@@ -288,7 +294,7 @@ const mergeHydrationData = (loaded: Record<CalculatorType, CalculatorData>, data
             ...current,
             values: newValues,
             result: data.summary || current.result,
-            touched: current.touched 
+            touched: touched 
         }
     };
 };

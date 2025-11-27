@@ -24809,15 +24809,19 @@ var getHydrationData = () => {
 };
 var mergeHydrationData = (loaded, data) => {
   if (!data || !data.height_cm && !data.weight_kg && !data.age_years && !data.summary) return loaded;
+  if (!loaded || !loaded["BMI Calculator"]) return loaded;
   const current = loaded["BMI Calculator"];
-  const isTouch = (field) => current.touched && current.touched[field];
+  if (!current) return loaded;
+  const values = current.values || DEFAULT_VALUES;
+  const touched = current.touched || {};
+  const isTouch = (field) => touched[field];
   const hCm = data.height_cm;
   const wKg = data.weight_kg;
   const hFt = hCm ? Math.floor(Number(hCm) / 2.54 / 12) : null;
   const hIn = hCm ? Math.round(Number(hCm) / 2.54 % 12) : null;
   const wLbs = wKg ? Math.round(Number(wKg) * 2.20462) : null;
   const shouldUpdate = (group) => !isTouch(group);
-  const newValues = { ...current.values };
+  const newValues = { ...values };
   if (shouldUpdate("height")) {
     if (hCm) newValues.heightCm = String(hCm);
     if (hFt !== null) newValues.heightFt = String(hFt);
@@ -24842,7 +24846,7 @@ var mergeHydrationData = (loaded, data) => {
       ...current,
       values: newValues,
       result: data.summary || current.result,
-      touched: current.touched
+      touched
     }
   };
 };
