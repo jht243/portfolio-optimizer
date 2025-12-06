@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
-  RotateCcw, Play, Minus, Plus, ChevronDown, Loader, HelpCircle, Info, X, ArrowRight
+  RotateCcw, Play, Minus, Plus, ChevronDown, Loader, HelpCircle, Info, X, ArrowRight, Check, Mail
 } from "lucide-react";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -218,11 +218,58 @@ export default function PortfolioSimulator({ initialData }: { initialData?: any 
   const [annualContribution, setAnnualContribution] = useState("6000");
   const [initialInvestment, setInitialInvestment] = useState("10000");
   const [investmentGoal, setInvestmentGoal] = useState("growth");
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [resultView, setResultView] = useState<"projection" | "allocation" | "summary">("projection");
+  const [activePreset, setActivePreset] = useState("balanced");
   const [isSimulating, setIsSimulating] = useState(false);
   const [simulationResult, setSimulationResult] = useState<{ results: SimulationResult[]; stats: PortfolioStats } | null>(null);
-  const [activePreset, setActivePreset] = useState<"conservative" | "balanced" | "aggressive" | "early" | "mid" | "late" | null>("balanced");
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [resultView, setResultView] = useState<"projection" | "allocation" | "summary">("projection");
+
+  // Subscription State
+  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
+  const [email, setEmail] = useState("");
+  const [subscribeStatus, setSubscribeStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [subscribeMessage, setSubscribeMessage] = useState("");
+  const [showBanner, setShowBanner] = useState(true);
+
+  const handleSubscribe = async () => {
+    if (!email || !email.includes("@")) {
+        setSubscribeMessage("Please enter a valid email.");
+        setSubscribeStatus("error");
+        return;
+    }
+
+    setSubscribeStatus("loading");
+    try {
+        const response = await fetch("/api/subscribe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email,
+                topicId: "portfolio-optimizer",
+                topicName: "Portfolio Optimizer Calculator"
+            })
+        });
+        
+        const data = await response.json();
+        if (response.ok && data.success) {
+            setSubscribeStatus("success");
+            setSubscribeMessage(data.message);
+            setTimeout(() => {
+                setShowSubscribeModal(false);
+                setEmail("");
+                setSubscribeStatus("idle");
+                setSubscribeMessage("");
+            }, 3000);
+        } else {
+            setSubscribeStatus("error");
+            setSubscribeMessage(data.error || "Failed to subscribe.");
+        }
+    } catch (e) {
+        console.error("Subscribe error:", e);
+        setSubscribeStatus("error");
+        setSubscribeMessage("Network error. Please try again.");
+    }
+  };
 
   const totalAllocation = useMemo(() => (parseFloat(allocation.stocks) || 0) + (parseFloat(allocation.bonds) || 0) + (parseFloat(allocation.cash) || 0) + (parseFloat(allocation.realEstate) || 0) + (parseFloat(allocation.crypto) || 0) + (parseFloat(allocation.fourOhOneK) || 0) + (parseFloat(allocation.altInvestments) || 0) + (parseFloat(allocation.startups) || 0) + (parseFloat(allocation.other) || 0), [allocation]);
   const allocationValid = inputMode === "dollar" ? totalAllocation > 0 : totalAllocation === 100;
@@ -316,13 +363,65 @@ export default function PortfolioSimulator({ initialData }: { initialData?: any 
     strategyBtn: (active: boolean) => ({ flex: 1, padding: "8px", borderRadius: "8px", border: active ? `2px solid ${COLORS.primary}` : `1px solid ${COLORS.border}`, backgroundColor: active ? COLORS.accentLight : "white", color: active ? COLORS.primaryDark : COLORS.textSecondary, fontWeight: 700, fontSize: "12px", cursor: "pointer", textAlign: "center" as const }),
     resultCard: { backgroundColor: COLORS.card, borderRadius: "24px", padding: "24px", boxShadow: "0 10px 40px -10px rgba(0,0,0,0.08)", marginTop: "24px" },
     footer: { display: "flex", justifyContent: "center", gap: "24px", marginTop: "40px", paddingTop: "24px", borderTop: `1px solid ${COLORS.border}` },
-    footerBtn: { display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", color: COLORS.textSecondary, fontSize: "14px", fontWeight: 600, padding: "8px" }
+    footerBtn: { display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", color: COLORS.textSecondary, fontSize: "14px", fontWeight: 600, padding: "8px" },
+    modalOverlay: { position: "fixed" as const, top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", zIndex: 1000, padding: "20px", paddingTop: "40px", overflowY: "auto" as const },
+    modalContent: { backgroundColor: "white", borderRadius: "24px", padding: "24px", width: "100%", maxWidth: "560px", boxShadow: "0 20px 60px -10px rgba(0,0,0,0.2)", position: "relative" as const },
+    modalClose: { position: "absolute" as const, top: "16px", right: "16px", background: "none", border: "none", cursor: "pointer", color: COLORS.textSecondary, padding: "8px", display: "flex", alignItems: "center", justifyContent: "center" },
+    input: { width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1px solid ${COLORS.border}`, fontSize: "16px", backgroundColor: COLORS.inputBg, color: COLORS.textMain, marginBottom: "16px", boxSizing: "border-box" as const, outline: "none" }
   };
 
   return (
     <div style={styles.container}>
       <div style={{ fontSize: "28px", fontWeight: 800, color: COLORS.textMain, marginBottom: "10px" }}>The Strategic Portfolio Simulator</div>
-      <div style={{ fontSize: "14px", color: COLORS.textSecondary, marginBottom: "20px", display: "flex", alignItems: "center", gap: 6 }}>Aligned with Modern Portfolio Theory & Historical Market Data</div>
+      <div style={{ fontSize: "14px", color: COLORS.textSecondary, marginBottom: "20px", display: "flex", alignItems: "center", gap: 6 }}>
+        <Check size={16} color={COLORS.primary} /> Aligned with Modern Portfolio Theory (MPT) & Historical Market Data™
+      </div>
+
+      {showBanner && (
+      <div style={{
+          backgroundColor: COLORS.accentLight,
+          borderRadius: "16px",
+          padding: "16px",
+          marginBottom: "24px",
+          marginTop: "16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: "12px",
+          position: "relative"
+      }}>
+          <div style={{fontSize: "14px", fontWeight: 600, color: COLORS.primaryDark, paddingRight: "24px"}}>
+              Want expert tips to reach your goals faster?
+          </div>
+          <div style={{display: "flex", alignItems: "center", gap: 12}}>
+            <button className="btn-press" onClick={() => setShowSubscribeModal(true)} style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "10px 16px",
+              backgroundColor: COLORS.primary,
+              color: "white",
+              borderRadius: "24px",
+              border: "none",
+              fontSize: "13px",
+              fontWeight: 700,
+              cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(86, 197, 150, 0.25)",
+              marginRight: 24
+            }}>
+                <Mail size={14} />
+                Subscribe
+            </button>
+            <div 
+                style={{cursor: "pointer", padding: 4, position: "absolute", top: 8, right: 8, color: COLORS.textSecondary}} 
+                onClick={() => setShowBanner(false)}
+            >
+                <X size={16} />
+            </div>
+          </div>
+      </div>
+      )}
 
       <div style={{ backgroundColor: COLORS.accentLight, borderRadius: "16px", padding: "16px", marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px" }}>
         <Info size={20} color={COLORS.primaryDark} style={{ flexShrink: 0 }} />
@@ -522,6 +621,61 @@ export default function PortfolioSimulator({ initialData }: { initialData?: any 
       </div>
 
       <div style={styles.footer} className="no-print"><button style={styles.footerBtn} onClick={resetToDefaults} className="btn-press"><RotateCcw size={16} /> Reset</button></div>
+
+      {/* Subscription Modal */}
+      {showSubscribeModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowSubscribeModal(false)}>
+          <div style={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <button style={styles.modalClose} onClick={() => setShowSubscribeModal(false)}>
+              <X size={20} />
+            </button>
+            
+            <div style={{fontSize: "24px", fontWeight: 800, marginBottom: "8px", color: COLORS.textMain}}>
+              Sign Up For Portfolio Tips
+            </div>
+            <div style={{fontSize: "14px", color: COLORS.textSecondary, marginBottom: "24px"}}>
+              Get personalized recommendations to improve your investment strategy.
+            </div>
+
+            {subscribeStatus === "success" ? (
+                <div style={{textAlign: "center", padding: "20px", color: COLORS.primary, fontWeight: 600}}>
+                    <div style={{fontSize: "40px", marginBottom: "10px"}}>🎉</div>
+                    {subscribeMessage}
+                </div>
+            ) : (
+                <>
+                    <div style={{marginBottom: "16px"}}>
+                        <label style={{display: "block", fontSize: "14px", fontWeight: 600, marginBottom: "8px", color: COLORS.textMain}}>Email Address</label>
+                        <input 
+                            style={styles.input}
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                    </div>
+
+                    {subscribeStatus === "error" && (
+                        <div style={{color: COLORS.red, fontSize: "14px", marginBottom: "16px", textAlign: "center"}}>
+                            {subscribeMessage}
+                        </div>
+                    )}
+
+                    <button 
+                        style={{...styles.calcButton, width: "100%"}} 
+                        onClick={handleSubscribe}
+                        disabled={subscribeStatus === "loading"}
+                        className="btn-press"
+                    >
+                        {subscribeStatus === "loading" ? "Subscribing..." : "Subscribe"}
+                    </button>
+                    <div style={{fontSize: "11px", color: COLORS.textSecondary, textAlign: "center", marginTop: "12px", lineHeight: 1.4}}>
+                        By subscribing, you agree to receive emails. Unsubscribe anytime. We retain your email until you unsubscribe.
+                    </div>
+                </>
+            )}
+          </div>
+        </div>
+      )}
 
       <style>{`input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: ${COLORS.primary}; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.2); margin-top: -6px; } .btn-press { transition: transform 0.1s ease, opacity 0.2s; } .btn-press:active { transform: scale(0.95); } .btn-press:hover { opacity: 0.7; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } .spin { animation: spin 1s linear infinite; } @media print { .no-print { display: none !important; } }`}</style>
     </div>

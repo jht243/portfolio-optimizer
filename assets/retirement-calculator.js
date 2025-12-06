@@ -52576,11 +52576,53 @@ function PortfolioSimulator({ initialData: initialData2 }) {
   const [annualContribution, setAnnualContribution] = (0, import_react59.useState)("6000");
   const [initialInvestment, setInitialInvestment] = (0, import_react59.useState)("10000");
   const [investmentGoal, setInvestmentGoal] = (0, import_react59.useState)("growth");
-  const [showAdvanced, setShowAdvanced] = (0, import_react59.useState)(false);
-  const [resultView, setResultView] = (0, import_react59.useState)("projection");
+  const [activePreset, setActivePreset] = (0, import_react59.useState)("balanced");
   const [isSimulating, setIsSimulating] = (0, import_react59.useState)(false);
   const [simulationResult, setSimulationResult] = (0, import_react59.useState)(null);
-  const [activePreset, setActivePreset] = (0, import_react59.useState)("balanced");
+  const [showAdvanced, setShowAdvanced] = (0, import_react59.useState)(false);
+  const [resultView, setResultView] = (0, import_react59.useState)("projection");
+  const [showSubscribeModal, setShowSubscribeModal] = (0, import_react59.useState)(false);
+  const [email, setEmail] = (0, import_react59.useState)("");
+  const [subscribeStatus, setSubscribeStatus] = (0, import_react59.useState)("idle");
+  const [subscribeMessage, setSubscribeMessage] = (0, import_react59.useState)("");
+  const [showBanner, setShowBanner] = (0, import_react59.useState)(true);
+  const handleSubscribe = async () => {
+    if (!email || !email.includes("@")) {
+      setSubscribeMessage("Please enter a valid email.");
+      setSubscribeStatus("error");
+      return;
+    }
+    setSubscribeStatus("loading");
+    try {
+      const response = await fetch("/api/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          topicId: "portfolio-optimizer",
+          topicName: "Portfolio Optimizer Calculator"
+        })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setSubscribeStatus("success");
+        setSubscribeMessage(data.message);
+        setTimeout(() => {
+          setShowSubscribeModal(false);
+          setEmail("");
+          setSubscribeStatus("idle");
+          setSubscribeMessage("");
+        }, 3e3);
+      } else {
+        setSubscribeStatus("error");
+        setSubscribeMessage(data.error || "Failed to subscribe.");
+      }
+    } catch (e) {
+      console.error("Subscribe error:", e);
+      setSubscribeStatus("error");
+      setSubscribeMessage("Network error. Please try again.");
+    }
+  };
   const totalAllocation = (0, import_react59.useMemo)(() => (parseFloat(allocation.stocks) || 0) + (parseFloat(allocation.bonds) || 0) + (parseFloat(allocation.cash) || 0) + (parseFloat(allocation.realEstate) || 0) + (parseFloat(allocation.crypto) || 0) + (parseFloat(allocation.fourOhOneK) || 0) + (parseFloat(allocation.altInvestments) || 0) + (parseFloat(allocation.startups) || 0) + (parseFloat(allocation.other) || 0), [allocation]);
   const allocationValid = inputMode === "dollar" ? totalAllocation > 0 : totalAllocation === 100;
   (0, import_react59.useEffect)(() => {
@@ -52679,11 +52721,61 @@ function PortfolioSimulator({ initialData: initialData2 }) {
     strategyBtn: (active) => ({ flex: 1, padding: "8px", borderRadius: "8px", border: active ? `2px solid ${COLORS2.primary}` : `1px solid ${COLORS2.border}`, backgroundColor: active ? COLORS2.accentLight : "white", color: active ? COLORS2.primaryDark : COLORS2.textSecondary, fontWeight: 700, fontSize: "12px", cursor: "pointer", textAlign: "center" }),
     resultCard: { backgroundColor: COLORS2.card, borderRadius: "24px", padding: "24px", boxShadow: "0 10px 40px -10px rgba(0,0,0,0.08)", marginTop: "24px" },
     footer: { display: "flex", justifyContent: "center", gap: "24px", marginTop: "40px", paddingTop: "24px", borderTop: `1px solid ${COLORS2.border}` },
-    footerBtn: { display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", color: COLORS2.textSecondary, fontSize: "14px", fontWeight: 600, padding: "8px" }
+    footerBtn: { display: "flex", alignItems: "center", gap: "8px", background: "none", border: "none", cursor: "pointer", color: COLORS2.textSecondary, fontSize: "14px", fontWeight: 600, padding: "8px" },
+    modalOverlay: { position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", display: "flex", alignItems: "flex-start", justifyContent: "center", zIndex: 1e3, padding: "20px", paddingTop: "40px", overflowY: "auto" },
+    modalContent: { backgroundColor: "white", borderRadius: "24px", padding: "24px", width: "100%", maxWidth: "560px", boxShadow: "0 20px 60px -10px rgba(0,0,0,0.2)", position: "relative" },
+    modalClose: { position: "absolute", top: "16px", right: "16px", background: "none", border: "none", cursor: "pointer", color: COLORS2.textSecondary, padding: "8px", display: "flex", alignItems: "center", justifyContent: "center" },
+    input: { width: "100%", padding: "12px 16px", borderRadius: "12px", border: `1px solid ${COLORS2.border}`, fontSize: "16px", backgroundColor: COLORS2.inputBg, color: COLORS2.textMain, marginBottom: "16px", boxSizing: "border-box", outline: "none" }
   };
   return /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: styles.container, children: [
     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "28px", fontWeight: 800, color: COLORS2.textMain, marginBottom: "10px" }, children: "The Strategic Portfolio Simulator" }),
-    /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "14px", color: COLORS2.textSecondary, marginBottom: "20px", display: "flex", alignItems: "center", gap: 6 }, children: "Aligned with Modern Portfolio Theory & Historical Market Data" }),
+    /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "14px", color: COLORS2.textSecondary, marginBottom: "20px", display: "flex", alignItems: "center", gap: 6 }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Check, { size: 16, color: COLORS2.primary }),
+      " Aligned with Modern Portfolio Theory (MPT) & Historical Market Data\u2122"
+    ] }),
+    showBanner && /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: {
+      backgroundColor: COLORS2.accentLight,
+      borderRadius: "16px",
+      padding: "16px",
+      marginBottom: "24px",
+      marginTop: "16px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      flexWrap: "wrap",
+      gap: "12px",
+      position: "relative"
+    }, children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "14px", fontWeight: 600, color: COLORS2.primaryDark, paddingRight: "24px" }, children: "Want expert tips to reach your goals faster?" }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { display: "flex", alignItems: "center", gap: 12 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { className: "btn-press", onClick: () => setShowSubscribeModal(true), style: {
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          padding: "10px 16px",
+          backgroundColor: COLORS2.primary,
+          color: "white",
+          borderRadius: "24px",
+          border: "none",
+          fontSize: "13px",
+          fontWeight: 700,
+          cursor: "pointer",
+          boxShadow: "0 4px 12px rgba(86, 197, 150, 0.25)",
+          marginRight: 24
+        }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Mail, { size: 14 }),
+          "Subscribe"
+        ] }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "div",
+          {
+            style: { cursor: "pointer", padding: 4, position: "absolute", top: 8, right: 8, color: COLORS2.textSecondary },
+            onClick: () => setShowBanner(false),
+            children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(X, { size: 16 })
+          }
+        )
+      ] })
+    ] }),
     /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { backgroundColor: COLORS2.accentLight, borderRadius: "16px", padding: "16px", marginBottom: "24px", display: "flex", alignItems: "center", gap: "12px" }, children: [
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(Info, { size: 20, color: COLORS2.primaryDark, style: { flexShrink: 0 } }),
       /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { fontSize: "13px", color: COLORS2.primaryDark, lineHeight: 1.5 }, children: [
@@ -53085,6 +53177,40 @@ function PortfolioSimulator({ initialData: initialData2 }) {
     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: styles.footer, className: "no-print", children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("button", { style: styles.footerBtn, onClick: resetToDefaults, className: "btn-press", children: [
       /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(RotateCcw, { size: 16 }),
       " Reset"
+    ] }) }),
+    showSubscribeModal && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: styles.modalOverlay, onClick: () => setShowSubscribeModal(false), children: /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: styles.modalContent, onClick: (e) => e.stopPropagation(), children: [
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("button", { style: styles.modalClose, onClick: () => setShowSubscribeModal(false), children: /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(X, { size: 20 }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "24px", fontWeight: 800, marginBottom: "8px", color: COLORS2.textMain }, children: "Sign Up For Portfolio Tips" }),
+      /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "14px", color: COLORS2.textSecondary, marginBottom: "24px" }, children: "Get personalized recommendations to improve your investment strategy." }),
+      subscribeStatus === "success" ? /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { textAlign: "center", padding: "20px", color: COLORS2.primary, fontWeight: 600 }, children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "40px", marginBottom: "10px" }, children: "\u{1F389}" }),
+        subscribeMessage
+      ] }) : /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)(import_jsx_runtime2.Fragment, { children: [
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsxs)("div", { style: { marginBottom: "16px" }, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("label", { style: { display: "block", fontSize: "14px", fontWeight: 600, marginBottom: "8px", color: COLORS2.textMain }, children: "Email Address" }),
+          /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+            "input",
+            {
+              style: styles.input,
+              placeholder: "you@example.com",
+              value: email,
+              onChange: (e) => setEmail(e.target.value)
+            }
+          )
+        ] }),
+        subscribeStatus === "error" && /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { color: COLORS2.red, fontSize: "14px", marginBottom: "16px", textAlign: "center" }, children: subscribeMessage }),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)(
+          "button",
+          {
+            style: { ...styles.calcButton, width: "100%" },
+            onClick: handleSubscribe,
+            disabled: subscribeStatus === "loading",
+            className: "btn-press",
+            children: subscribeStatus === "loading" ? "Subscribing..." : "Subscribe"
+          }
+        ),
+        /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("div", { style: { fontSize: "11px", color: COLORS2.textSecondary, textAlign: "center", marginTop: "12px", lineHeight: 1.4 }, children: "By subscribing, you agree to receive emails. Unsubscribe anytime. We retain your email until you unsubscribe." })
+      ] })
     ] }) }),
     /* @__PURE__ */ (0, import_jsx_runtime2.jsx)("style", { children: `input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; } input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: ${COLORS2.primary}; cursor: pointer; border: 2px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.2); margin-top: -6px; } .btn-press { transition: transform 0.1s ease, opacity 0.2s; } .btn-press:active { transform: scale(0.95); } .btn-press:hover { opacity: 0.7; } @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } .spin { animation: spin 1s linear infinite; } @media print { .no-print { display: none !important; } }` })
   ] });
