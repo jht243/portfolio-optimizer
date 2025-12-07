@@ -241,12 +241,12 @@ function widgetMeta(widget: RetirementCalculatorWidget, bustCache: boolean = fal
     "openai/widgetCSP": {
       connect_domains: [
         "https://api.stlouisfed.org",
-        "https://retirement-calculator.onrender.com",
+        "https://portfolio-optimizer-svpa.onrender.com",
         "http://localhost:8010",
         "https://challenges.cloudflare.com"
       ],
       script_src_domains: [
-        "https://retirement-calculator.onrender.com",
+        "https://portfolio-optimizer-svpa.onrender.com",
         "https://challenges.cloudflare.com"
       ],
       resource_domains: [],

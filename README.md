@@ -37,18 +37,18 @@ Server runs on `http://localhost:8000`. **Note:** HTTP endpoints are for local d
 3. Create new Web Service from this repo
 4. Render will auto-detect `render.yaml` and deploy
 
-Your permanent URL: `https://your-app.onrender.com/mcp`
+Your permanent URL: `https://portfolio-optimizer-svpa.onrender.com/mcp`
 
 ### Transport Security
 
 - **Production:** Always access the MCP endpoints via `https://…` (Render automatically provisions TLS). Never expose the widget or APIs over plain HTTP in production.
 - **Local development:** The only allowed HTTP endpoint is `http://localhost:8000` while running `npm start`. Do not publish that URL or tunnel it publicly.
-- **External monitors/webhooks:** When configuring Pingdom, Datadog, etc., use the HTTPS endpoint (`https://your-app.onrender.com/analytics`, `…/mcp`, etc.) to keep telemetry encrypted end-to-end.
+- **External monitors/webhooks:** When configuring Pingdom, Datadog, etc., use the HTTPS endpoint (`https://portfolio-optimizer-svpa.onrender.com/analytics`, `…/mcp`, etc.) to keep telemetry encrypted end-to-end.
 
 ## How to Use in ChatGPT
 
 1. Open ChatGPT in **Developer Mode**
-2. Add MCP Connector with URL: `https://your-app.onrender.com/mcp`
+2. Add MCP Connector with URL: `https://portfolio-optimizer-svpa.onrender.com/mcp`
 3. Say: **"calculate my retirement"**
 4. The interactive widget appears!
 
