@@ -50480,18 +50480,40 @@ function runMonteCarloSimulation(allocation, timeHorizon, annualContribution, in
 }
 function PortfolioSimulator({ initialData: initialData2 }) {
   const savedData = loadSavedData();
+  const hasInitial = (key) => initialData2 && initialData2[key] !== void 0;
   const [allocation, setAllocation] = (0, import_react57.useState)(() => {
     if (initialData2 && Object.keys(initialData2).length > 0) {
       return savedData.allocation;
     }
     return savedData.allocation;
   });
-  const [timeHorizon, setTimeHorizon] = (0, import_react57.useState)(() => savedData.timeHorizon);
+  const [timeHorizon, setTimeHorizon] = (0, import_react57.useState)(() => {
+    if (hasInitial("time_horizon")) return String(initialData2.time_horizon);
+    if (hasInitial("retirement_age") && hasInitial("current_age")) {
+      return String(Math.max(1, initialData2.retirement_age - initialData2.current_age));
+    }
+    return savedData.timeHorizon;
+  });
   const [inputMode, setInputMode] = (0, import_react57.useState)(() => savedData.inputMode);
-  const [annualContribution, setAnnualContribution] = (0, import_react57.useState)(() => savedData.annualContribution);
-  const [initialInvestment, setInitialInvestment] = (0, import_react57.useState)(() => savedData.initialInvestment);
-  const [investmentGoal, setInvestmentGoal] = (0, import_react57.useState)(() => savedData.investmentGoal);
-  const [activePreset, setActivePreset] = (0, import_react57.useState)(() => savedData.activePreset);
+  const [annualContribution, setAnnualContribution] = (0, import_react57.useState)(() => {
+    if (hasInitial("annual_contribution")) return String(initialData2.annual_contribution);
+    if (hasInitial("monthly_contribution")) return String(initialData2.monthly_contribution * 12);
+    if (hasInitial("monthly_contributions")) return String(initialData2.monthly_contributions * 12);
+    return savedData.annualContribution;
+  });
+  const [initialInvestment, setInitialInvestment] = (0, import_react57.useState)(() => {
+    if (hasInitial("initial_investment")) return String(initialData2.initial_investment);
+    if (hasInitial("current_retirement_savings")) return String(initialData2.current_retirement_savings);
+    return savedData.initialInvestment;
+  });
+  const [investmentGoal, setInvestmentGoal] = (0, import_react57.useState)(() => {
+    if (hasInitial("investment_goal")) return initialData2.investment_goal;
+    return savedData.investmentGoal;
+  });
+  const [activePreset, setActivePreset] = (0, import_react57.useState)(() => {
+    if (hasInitial("risk_tolerance")) return initialData2.risk_tolerance;
+    return savedData.activePreset;
+  });
   const [isSimulating, setIsSimulating] = (0, import_react57.useState)(false);
   const [simulationResult, setSimulationResult] = (0, import_react57.useState)(null);
   const [showAdvanced, setShowAdvanced] = (0, import_react57.useState)(false);

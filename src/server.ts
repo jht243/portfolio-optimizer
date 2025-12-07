@@ -125,29 +125,41 @@ function classifyDevice(userAgent?: string | null): string {
 }
 
 function computeSummary(args: any) {
-  const currentAge = Number(args.current_age);
-  const income = Number(args.annual_pre_tax_income);
-  const savings = Number(args.current_retirement_savings);
+  const initialInvestment = Number(args.initial_investment) || Number(args.current_retirement_savings) || 0;
+  const annualContribution = Number(args.annual_contribution) || (Number(args.monthly_contribution) || 0) * 12;
+  const timeHorizon = Number(args.time_horizon) || 10;
+  const riskTolerance = args.risk_tolerance || "balanced";
+  const investmentGoal = args.investment_goal || "growth";
   
-  if (!currentAge || !income || !savings) {
-    return {
-      retirement_score: null,
-      retirement_status: null,
-      projected_savings: null,
-    };
+  // Calculate expected return based on risk tolerance
+  const expectedReturns: Record<string, number> = {
+    conservative: 0.05,
+    balanced: 0.07,
+    aggressive: 0.10
+  };
+  const expectedReturn = expectedReturns[riskTolerance] || 0.07;
+  
+  // Project future value using compound growth formula
+  let projectedValue = initialInvestment;
+  for (let year = 0; year < timeHorizon; year++) {
+    projectedValue = projectedValue * (1 + expectedReturn) + annualContribution;
   }
-
-  // Simple heuristic for summary
-  const retirementScore = savings / income;
   
-  let retirementStatus = "Needs Attention";
-  if (retirementScore > 1.0) retirementStatus = "On Track";
-  else if (retirementScore > 0.5) retirementStatus = "Getting There";
+  // Determine portfolio health status
+  const totalContributions = initialInvestment + (annualContribution * timeHorizon);
+  const growthMultiple = projectedValue / (totalContributions || 1);
+  
+  let portfolioStatus = "Needs Review";
+  if (growthMultiple > 2.0) portfolioStatus = "Strong Growth";
+  else if (growthMultiple > 1.5) portfolioStatus = "On Track";
+  else if (growthMultiple > 1.2) portfolioStatus = "Moderate";
 
   return {
-    retirement_score: Math.round(retirementScore * 10) / 10,
-    retirement_status: retirementStatus,
-    projected_savings: null // Placeholder
+    projected_value: Math.round(projectedValue),
+    portfolio_status: portfolioStatus,
+    expected_return: Math.round(expectedReturn * 100),
+    growth_multiple: Math.round(growthMultiple * 10) / 10,
+    total_contributions: Math.round(totalContributions)
   };
 }
 
@@ -208,34 +220,36 @@ function widgetMeta(widget: PortfolioOptimizerWidget, bustCache: boolean = false
   return {
     "openai/outputTemplate": templateUri,
     "openai/widgetDescription":
-      "A comprehensive portfolio optimizer for portfolio optimization. Call this tool immediately with NO arguments to let the user enter their data manually. Only provide arguments if the user has explicitly stated them.",
+      "A Monte Carlo portfolio simulator that projects investment growth based on asset allocation, time horizon, and contribution strategy. Call this tool immediately with NO arguments to let the user enter their data manually. Only provide arguments if the user has explicitly stated them.",
     "openai/componentDescriptions": {
-      "metrics-form": "Input form for income, savings, and age.",
-      "portfolio-card": "Card displaying the calculated portfolio projection and allocation.",
-      "projected-savings-card": "Card showing the estimated projected savings.",
+      "allocation-form": "Input form for asset allocation percentages or dollar amounts across stocks, bonds, cash, real estate, crypto, and other investments.",
+      "projection-chart": "Interactive chart showing projected portfolio growth with confidence intervals over time.",
+      "stats-card": "Card displaying expected return, volatility, Sharpe ratio, and other portfolio statistics.",
     },
     "openai/widgetKeywords": [
       "portfolio",
-      "planning",
-      "income",
-      "savings",
-      "portfolio optimizer",
-      "finance",
-      "investment"
+      "asset allocation",
+      "stocks",
+      "bonds",
+      "investment",
+      "monte carlo",
+      "diversification",
+      "risk tolerance",
+      "crypto",
+      "401k"
     ],
     "openai/sampleConversations": [
-      { "user": "Optimize my portfolio", "assistant": "Here is the Portfolio Optimizer. You can enter your income, savings, and age when ready, or I can help calculate if you provide them." },
-      { "user": "Optimize my portfolio, I am 35 years old, make $100,000, and have $50,000 in savings.", "assistant": "I can help with that. Here is your portfolio optimization." },
-      { "user": "What is my projected savings if I'm 40 years old, make $80,000, and have $30,000 in savings?", "assistant": "I've estimated your projected savings based on your income, savings, and age." },
+      { "user": "Optimize my portfolio", "assistant": "Here is the Portfolio Optimizer. You can set your asset allocation, time horizon, and contribution strategy to see projected growth." },
+      { "user": "I have $100,000 to invest for 20 years with moderate risk tolerance", "assistant": "I'll set up a balanced portfolio projection with your $100,000 initial investment over a 20-year horizon." },
+      { "user": "What allocation should I use for growth with $50k in stocks and $30k in bonds?", "assistant": "I've loaded your current allocation. The simulator will project your portfolio growth based on historical asset class returns." },
     ],
     "openai/starterPrompts": [
       "Optimize my portfolio",
-      "Portfolio Planning",
-      "Income Calculator",
-      "Savings Calculator",
-      "Portfolio Optimizer",
-      "Finance Calculator",
-      "Investment Calculator",
+      "Analyze my asset allocation",
+      "Project my investment growth",
+      "What's the best allocation for growth?",
+      "Simulate my portfolio for 10 years",
+      "I want to invest $50,000",
     ],
     "openai/widgetPrefersBorder": true,
     "openai/widgetCSP": {
@@ -262,12 +276,12 @@ function widgetMeta(widget: PortfolioOptimizerWidget, bustCache: boolean = false
 const widgets: PortfolioOptimizerWidget[] = [
   {
     id: "portfolio-optimizer",
-    title: "Portfolio Optimizer — analyze portfolio allocation",
+    title: "Portfolio Optimizer — Monte Carlo investment simulator",
     templateUri: `ui://widget/portfolio-optimizer.html?v=${VERSION}`,
     invoking:
       "Opening the Portfolio Optimizer...",
     invoked:
-      "Here is the Portfolio Optimizer. Enter your income, savings, and age to optimize your portfolio allocation.",
+      "Here is the Portfolio Optimizer. Set your asset allocation, time horizon, and contribution strategy to project your investment growth.",
     html: readWidgetHtml("portfolio-optimizer"),
   },
 ];
@@ -323,17 +337,20 @@ const tools: Tool[] = widgets.map((widget) => ({
     properties: {
       ready: { type: "boolean" },
       timestamp: { type: "string" },
-      current_age: { type: "number" },
-      annual_pre_tax_income: { type: "number" },
-      current_retirement_savings: { type: "number" },
-      retirement_score: { type: "number" },
+      initial_investment: { type: "number" },
+      annual_contribution: { type: "number" },
+      time_horizon: { type: "number" },
+      risk_tolerance: { type: "string", enum: ["conservative", "balanced", "aggressive"] },
+      investment_goal: { type: "string", enum: ["growth", "income", "preservation"] },
       input_source: { type: "string", enum: ["user", "default"] },
       summary: {
         type: "object",
         properties: {
-          retirement_score: { type: ["number", "null"] },
-          retirement_status: { type: ["string", "null"] },
-          projected_savings: { type: ["number", "null"] },
+          projected_value: { type: ["number", "null"] },
+          portfolio_status: { type: ["string", "null"] },
+          expected_return: { type: ["number", "null"] },
+          growth_multiple: { type: ["number", "null"] },
+          total_contributions: { type: ["number", "null"] },
         },
       },
       suggested_followups: {
@@ -508,21 +525,56 @@ function createPortfolioOptimizerServer(): Server {
             return Number.isFinite(n) ? Math.round(n) : null;
           };
 
-          // Infer age and income from user text
-          if (args.current_age === undefined) {
-             // Basic regex for age
-             const ageMatch = userText.match(/\b(\d{1,3})\s*(?:yo|years|year old)\b/i);
-             if (ageMatch) {
-               const age = parseInt(ageMatch[1], 10);
-               if (age > 0 && age < 120) args.current_age = age;
+          // Infer portfolio parameters from user text
+          
+          // Time horizon (e.g., "10 years", "for 20 years")
+          if (args.time_horizon === undefined) {
+             const horizonMatch = userText.match(/(?:for\s+)?(\d{1,2})\s*(?:years?|yrs?)\b/i);
+             if (horizonMatch) {
+               const years = parseInt(horizonMatch[1], 10);
+               if (years > 0 && years <= 50) args.time_horizon = years;
              }
           }
           
-          if (args.annual_pre_tax_income === undefined) {
-             const incomeMatch = userText.match(/make\s*\$?(\d+(?:,\d{3})*(?:\.\d+)?)/i);
-             if (incomeMatch) {
-                args.annual_pre_tax_income = parseFloat(incomeMatch[1].replace(/,/g, ''));
+          // Initial investment (e.g., "$100k", "$50,000 to invest")
+          if (args.initial_investment === undefined) {
+             const investMatch = userText.match(/\$\s*(\d+(?:,\d{3})*(?:\.\d+)?)(k)?\s*(?:to invest|initial|starting|investment)?/i);
+             if (investMatch) {
+                let amount = parseFloat(investMatch[1].replace(/,/g, ''));
+                if (investMatch[2]?.toLowerCase() === 'k') amount *= 1000;
+                if (amount > 0) args.initial_investment = amount;
              }
+          }
+          
+          // Annual contribution (e.g., "$6000 per year", "$500/month")
+          if (args.annual_contribution === undefined) {
+             const annualMatch = userText.match(/\$\s*(\d+(?:,\d{3})*(?:\.\d+)?)(k)?\s*(?:per year|annually|yearly|\/year)/i);
+             if (annualMatch) {
+                let amount = parseFloat(annualMatch[1].replace(/,/g, ''));
+                if (annualMatch[2]?.toLowerCase() === 'k') amount *= 1000;
+                if (amount > 0) args.annual_contribution = amount;
+             }
+             // Also check for monthly contributions
+             const monthlyMatch = userText.match(/\$\s*(\d+(?:,\d{3})*(?:\.\d+)?)(k)?\s*(?:per month|monthly|\/month|\/mo)/i);
+             if (monthlyMatch) {
+                let amount = parseFloat(monthlyMatch[1].replace(/,/g, ''));
+                if (monthlyMatch[2]?.toLowerCase() === 'k') amount *= 1000;
+                if (amount > 0) args.monthly_contribution = amount;
+             }
+          }
+          
+          // Risk tolerance from keywords
+          if (args.risk_tolerance === undefined) {
+             if (/conservative|low risk|safe|cautious/i.test(userText)) args.risk_tolerance = "conservative";
+             else if (/aggressive|high risk|growth|risky/i.test(userText)) args.risk_tolerance = "aggressive";
+             else if (/balanced|moderate|medium/i.test(userText)) args.risk_tolerance = "balanced";
+          }
+          
+          // Investment goal from keywords
+          if (args.investment_goal === undefined) {
+             if (/growth|grow|maximize|aggressive/i.test(userText)) args.investment_goal = "growth";
+             else if (/income|dividend|yield|passive/i.test(userText)) args.investment_goal = "income";
+             else if (/preservation|protect|capital|safe/i.test(userText)) args.investment_goal = "preservation";
           }
 
         } catch (e) {
@@ -537,9 +589,11 @@ function createPortfolioOptimizerServer(): Server {
 
         // Infer likely user query from parameters
         const inferredQuery = [] as string[];
-        if (args.current_age) inferredQuery.push(`age: ${args.current_age}`);
-        if (args.annual_pre_tax_income) inferredQuery.push(`income: ${args.annual_pre_tax_income}`);
-        if (args.current_retirement_savings) inferredQuery.push(`savings: ${args.current_retirement_savings}`);
+        if (args.initial_investment) inferredQuery.push(`initial: $${args.initial_investment.toLocaleString()}`);
+        if (args.annual_contribution) inferredQuery.push(`annual: $${args.annual_contribution.toLocaleString()}`);
+        if (args.time_horizon) inferredQuery.push(`horizon: ${args.time_horizon}yrs`);
+        if (args.risk_tolerance) inferredQuery.push(`risk: ${args.risk_tolerance}`);
+        if (args.investment_goal) inferredQuery.push(`goal: ${args.investment_goal}`);
 
         logAnalytics("tool_call_success", {
           toolName: request.params.name,
@@ -574,9 +628,10 @@ function createPortfolioOptimizerServer(): Server {
           // Summary + follow-ups for natural language UX
           summary: computeSummary(args),
           suggested_followups: [
-            "Will I have enough to retire?",
-            "How much more should I save?",
-            "What if I retire later?"
+            "What if I increase my contributions?",
+            "How does a more aggressive allocation look?",
+            "What's my projected value in 20 years?",
+            "Should I diversify into crypto or real estate?"
           ],
         } as const;
 
@@ -600,13 +655,13 @@ function createPortfolioOptimizerServer(): Server {
         // Log success analytics
         try {
           // Check for "empty" result - when no main calculation inputs are provided
-          const hasMainInputs = args.annual_pre_tax_income || args.current_retirement_savings || args.current_age;
+          const hasMainInputs = args.initial_investment || args.annual_contribution || args.time_horizon || args.risk_tolerance;
           
           if (!hasMainInputs) {
              logAnalytics("tool_call_empty", {
                toolName: request.params.name,
                params: request.params.arguments || {},
-               reason: "No calculation inputs provided"
+               reason: "No portfolio inputs provided"
              });
           } else {
           logAnalytics("tool_call_success", {
@@ -819,7 +874,8 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
       : "N/A";
 
   const paramUsage: Record<string, number> = {};
-  const retirementStatusDist: Record<string, number> = {};
+  const portfolioStatusDist: Record<string, number> = {};
+  const riskToleranceDist: Record<string, number> = {};
   
   successLogs.forEach((log) => {
     if (log.params) {
@@ -828,10 +884,15 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
           paramUsage[key] = (paramUsage[key] || 0) + 1;
         }
       });
+      // Track risk tolerance distribution
+      if (log.params.risk_tolerance) {
+        const risk = log.params.risk_tolerance;
+        riskToleranceDist[risk] = (riskToleranceDist[risk] || 0) + 1;
+      }
     }
-    if (log.structuredContent?.summary?.retirement_status) {
-       const cat = log.structuredContent.summary.retirement_status;
-       retirementStatusDist[cat] = (retirementStatusDist[cat] || 0) + 1;
+    if (log.structuredContent?.summary?.portfolio_status) {
+       const cat = log.structuredContent.summary.portfolio_status;
+       portfolioStatusDist[cat] = (portfolioStatusDist[cat] || 0) + 1;
     }
   });
   
@@ -841,47 +902,48 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
     widgetInteractions[humanName] = (widgetInteractions[humanName] || 0) + 1;
   });
   
-  // Age distribution from calculations
-  const ageDistribution: Record<string, number> = {};
+  // Initial investment distribution
+  const investmentDistribution: Record<string, number> = {};
   successLogs.forEach((log) => {
-    if (log.params?.current_age) {
-      const age = log.params.current_age;
+    if (log.params?.initial_investment) {
+      const amount = log.params.initial_investment;
       let bucket = "Unknown";
-      if (age < 30) bucket = "Under 30";
-      else if (age < 40) bucket = "30-39";
-      else if (age < 50) bucket = "40-49";
-      else if (age < 60) bucket = "50-59";
-      else bucket = "60+";
-      ageDistribution[bucket] = (ageDistribution[bucket] || 0) + 1;
+      if (amount < 10000) bucket = "Under $10k";
+      else if (amount < 50000) bucket = "$10k-$50k";
+      else if (amount < 100000) bucket = "$50k-$100k";
+      else if (amount < 500000) bucket = "$100k-$500k";
+      else bucket = "$500k+";
+      investmentDistribution[bucket] = (investmentDistribution[bucket] || 0) + 1;
     }
   });
 
-  // Income distribution from calculations
-  const incomeDistribution: Record<string, number> = {};
+  // Annual contribution distribution
+  const contributionDistribution: Record<string, number> = {};
   successLogs.forEach((log) => {
-    if (log.params?.annual_pre_tax_income) {
-      const income = log.params.annual_pre_tax_income;
+    if (log.params?.annual_contribution) {
+      const amount = log.params.annual_contribution;
       let bucket = "Unknown";
-      if (income < 50000) bucket = "Under $50k";
-      else if (income < 100000) bucket = "$50k-$100k";
-      else if (income < 150000) bucket = "$100k-$150k";
-      else if (income < 200000) bucket = "$150k-$200k";
-      else bucket = "$200k+";
-      incomeDistribution[bucket] = (incomeDistribution[bucket] || 0) + 1;
+      if (amount < 5000) bucket = "Under $5k";
+      else if (amount < 10000) bucket = "$5k-$10k";
+      else if (amount < 20000) bucket = "$10k-$20k";
+      else if (amount < 50000) bucket = "$20k-$50k";
+      else bucket = "$50k+";
+      contributionDistribution[bucket] = (contributionDistribution[bucket] || 0) + 1;
     }
   });
 
-  // Retirement age targets
-  const retirementAgeTargets: Record<string, number> = {};
+  // Time horizon distribution
+  const timeHorizonDist: Record<string, number> = {};
   successLogs.forEach((log) => {
-    if (log.params?.retirement_age) {
-      const age = log.params.retirement_age;
+    if (log.params?.time_horizon) {
+      const years = log.params.time_horizon;
       let bucket = "Unknown";
-      if (age < 60) bucket = "Before 60";
-      else if (age < 65) bucket = "60-64";
-      else if (age < 70) bucket = "65-69";
-      else bucket = "70+";
-      retirementAgeTargets[bucket] = (retirementAgeTargets[bucket] || 0) + 1;
+      if (years <= 5) bucket = "0-5 years";
+      else if (years <= 10) bucket = "6-10 years";
+      else if (years <= 20) bucket = "11-20 years";
+      else if (years <= 30) bucket = "21-30 years";
+      else bucket = "30+ years";
+      timeHorizonDist[bucket] = (timeHorizonDist[bucket] || 0) + 1;
     }
   });
 
@@ -994,12 +1056,12 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
 
     <div class="grid" style="margin-bottom: 20px;">
       <div class="card">
-        <h2>Portfolio Status Categories</h2>
+        <h2>Portfolio Status</h2>
         <table>
-          <thead><tr><th>Category</th><th>Count</th></tr></thead>
+          <thead><tr><th>Status</th><th>Count</th></tr></thead>
           <tbody>
-            ${Object.entries(retirementStatusDist).length > 0 ? Object.entries(retirementStatusDist)
-              .sort((a, b) => b[1] - a[1])
+            ${Object.entries(portfolioStatusDist).length > 0 ? Object.entries(portfolioStatusDist)
+              .sort((a, b) => (b[1] as number) - (a[1] as number))
               .map(
                 ([cat, count]) => `
               <tr>
@@ -1057,16 +1119,16 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
 
     <div class="grid" style="margin-bottom: 20px;">
       <div class="card">
-        <h2>User Age Distribution</h2>
+        <h2>Initial Investment</h2>
         <table>
-          <thead><tr><th>Age Range</th><th>Users</th></tr></thead>
+          <thead><tr><th>Amount</th><th>Users</th></tr></thead>
           <tbody>
-            ${Object.entries(ageDistribution).length > 0 ? Object.entries(ageDistribution)
-              .sort((a, b) => b[1] - a[1])
+            ${Object.entries(investmentDistribution).length > 0 ? Object.entries(investmentDistribution)
+              .sort((a, b) => (b[1] as number) - (a[1] as number))
               .map(
-                ([age, count]) => `
+                ([amount, count]) => `
               <tr>
-                <td>${age}</td>
+                <td>${amount}</td>
                 <td>${count}</td>
               </tr>
             `
@@ -1077,16 +1139,16 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
       </div>
       
       <div class="card">
-        <h2>Income Distribution</h2>
+        <h2>Annual Contribution</h2>
         <table>
-          <thead><tr><th>Income Range</th><th>Users</th></tr></thead>
+          <thead><tr><th>Amount</th><th>Users</th></tr></thead>
           <tbody>
-            ${Object.entries(incomeDistribution).length > 0 ? Object.entries(incomeDistribution)
-              .sort((a, b) => b[1] - a[1])
+            ${Object.entries(contributionDistribution).length > 0 ? Object.entries(contributionDistribution)
+              .sort((a, b) => (b[1] as number) - (a[1] as number))
               .map(
-                ([income, count]) => `
+                ([amount, count]) => `
               <tr>
-                <td>${income}</td>
+                <td>${amount}</td>
                 <td>${count}</td>
               </tr>
             `
@@ -1097,16 +1159,16 @@ function generateAnalyticsDashboard(logs: AnalyticsEvent[], alerts: AlertEntry[]
       </div>
       
       <div class="card">
-        <h2>Target Investment Horizon</h2>
+        <h2>Time Horizon</h2>
         <table>
-          <thead><tr><th>Age Range</th><th>Users</th></tr></thead>
+          <thead><tr><th>Duration</th><th>Users</th></tr></thead>
           <tbody>
-            ${Object.entries(retirementAgeTargets).length > 0 ? Object.entries(retirementAgeTargets)
-              .sort((a, b) => b[1] - a[1])
+            ${Object.entries(timeHorizonDist).length > 0 ? Object.entries(timeHorizonDist)
+              .sort((a, b) => (b[1] as number) - (a[1] as number))
               .map(
-                ([age, count]) => `
+                ([years, count]) => `
               <tr>
-                <td>${age}</td>
+                <td>${years}</td>
                 <td>${count}</td>
               </tr>
             `
